@@ -1,19 +1,23 @@
-# Networks-File-Sharing-Application
+# Networks: File Sharing Application
 
-A client-server file sharing application that makes use of TCP sockets. 
-The server can send recieve files to clients. 
+A client-server file sharing application that makes use of TCP connections from socket programming. 
 
-Client capabilities:
-- Upload files to the server
-- Query server for list of available files
-- Dowload a file from server
+## Client and Server Capabilities
+### Client:
+* Upload files to the server
+* Query server for list of available files
+* Dowload a file from server
 
-Server capabilities:
-- Accept and parse client requests
-- Get requested file from server's file system and send to client
-- Multithreaded server cable of serving multiple requests simultaneously
+### Server:
+* Accept and parse client requests
+* Get requested file from server's file system
+```
+Outputs "404 Not Found" if file not present
+```
+* Send recieve files to/from clients
+* Multithreaded server cable of serving multiple requests simultaneously
 
-Application features:
-- Considers privacy/confidentiality through use of file sharing permissions?
-- File visibility/downloadabilty to certain clients?
-- Shared secret-key to be used to download files?
+## Application features:
+* Considers privacy/confidentiality through use of file sharing permissions?
+* File visibility/downloadabilty to certain clients?
+* Shared secret-key to be used to download files?
