@@ -49,7 +49,6 @@ public class Server {
                 System.out.println("Accepted connection: " + clientSocket);
 
                 Thread server = new Thread(new ThreadedClient(clientSocket));
-
                 server.start();
 
             } catch (Exception e) {

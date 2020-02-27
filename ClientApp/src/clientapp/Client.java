@@ -101,35 +101,36 @@ public class Client {
             System.out.print("Enter file name: ");
             fileName = input.readLine();
 
-            File uploadFileName = new File(currentDirectory + "\\src\\clientapp\\" + fileName);
-            
-            byte[] mybytearray = new byte[(int) uploadFileName.length()];
+            //Read in file from file location
+            File uploadFile = new File(currentDirectory + "\\files\\" + fileName);
 	    
             //if file does not exist, returns back to the loop
-            if(!uploadFileName.exists()) {
+            if(!uploadFile.exists()) {
 		System.out.println(FileNotFound);
 		return;
             }
 
-            FileInputStream fileInputStream = new FileInputStream(uploadFileName);
+            byte[] bytes = new byte[(int) uploadFile.length()];
+            
+            FileInputStream fileInputStream = new FileInputStream(uploadFile);
             BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
-            //bis.read(mybytearray, 0, mybytearray.length);
 
             DataInputStream dataInput = new DataInputStream(buffer);
-            dataInput.readFully(mybytearray, 0, mybytearray.length);
-		
-            OutputStream os = socket.getOutputStream();
+            dataInput.readFully(bytes, 0, bytes.length);
+
+            //handle file send over socket            
+            OutputStream output = socket.getOutputStream();
 
             //Sending file name and file size to the server
-            DataOutputStream dos = new DataOutputStream(os);
-            dos.writeUTF(uploadFileName.getName());
-            dos.writeLong(mybytearray.length);
-            dos.write(mybytearray, 0, mybytearray.length);
-            dos.flush();
+            DataOutputStream dataOutput = new DataOutputStream(output);
+            dataOutput.writeUTF(uploadFile.getName());
+            dataOutput.writeLong(bytes.length);
+            dataOutput.write(bytes, 0, bytes.length);
+            dataOutput.flush();
             
-            int start = fileName.lastIndexOf("\\");
-            String name = fileName.substring(start+1);
-            System.out.println("File: "+ name +" sent to Server.");
+            //int start = fileName.lastIndexOf("\\");
+            //String name = fileName.substring(start+1);
+            System.out.println("File: "+ fileName +" sent to Server.");
             
         } catch (Exception e) {
             System.err.println("Exception: "+e);
@@ -143,24 +144,27 @@ public class Client {
     public static void download(String fileName) {
         try {
             int bytesRead;
+            
             InputStream inputStream = socket.getInputStream();
 
             DataInputStream clientData = new DataInputStream(inputStream);
-
             fileName = clientData.readUTF();
-            OutputStream output = new FileOutputStream(fileName);
+            
+            FileOutputStream fileOutput = new FileOutputStream(currentDirectory + "\\downloads\\"+ fileName);
+            
             long size = clientData.readLong();
             byte[] buffer = new byte[1024];
             while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
-                output.write(buffer, 0, bytesRead);
+                fileOutput.write(buffer, 0, bytesRead);
                 size -= bytesRead;
             }
 
-            // Close socket and input stream
-            output.close();
+            // Close file output and input stream
+            fileOutput.close();
             inputStream.close();
 
             System.out.println("File "+fileName+" received from Server.");
+        
         } catch (IOException ex) {
 		System.out.println("Exception: "+ex);
          }

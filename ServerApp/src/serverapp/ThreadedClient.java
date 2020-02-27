@@ -23,7 +23,6 @@ public class ThreadedClient implements Runnable {
     public ThreadedClient(Socket client) {
         this.clientSocket = client;
         currentDirectory = System.getProperty("user.dir");
-
     }
 
     @Override
@@ -44,15 +43,15 @@ public class ThreadedClient implements Runnable {
                             sendFile(outGoingFileName);
                         }
                         continue;
+                    //Exit
                     case "3":
                         System.exit(1);
                         break;
                     default:
-                        System.out.println("Invalid command received.");
+                        System.err.println("Invalid command received.");
                         continue;
                 }
             }
-
         } catch (IOException ex) {
             System.err.println("Exception: " + ex);
         }
@@ -60,27 +59,31 @@ public class ThreadedClient implements Runnable {
 
     /**
      * File sent by client to server.
+     * These files are saved in the "files" folder of the project.
      */
     public void receiveFile() {
         try {
             int bytesRead;
 
+            //Gets the file data from the 
             DataInputStream clientData = new DataInputStream(clientSocket.getInputStream());
-
             String fileName = clientData.readUTF();
-            FileOutputStream out = new FileOutputStream(currentDirectory + "\\src\\serverapp\\"+fileName);
+            
+            FileOutputStream fileOutput = new FileOutputStream(currentDirectory + "\\files\\"+fileName);
 
             long size = clientData.readLong();
             byte[] buffer = new byte[1024];
             while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
-                out.write(buffer, 0, bytesRead);
+                fileOutput.write(buffer, 0, bytesRead);
                 size -= bytesRead;
             }
-
-            out.close();
-            //clientData.close();
+            
+            //Close file input and output stream
+            fileOutput.close();
+            clientData.close();
 
             System.out.println("File: " + fileName + " received from client.");
+            
         } catch (IOException ex) {
             System.err.println("Client error. Connection closed.");
         }
@@ -92,25 +95,33 @@ public class ThreadedClient implements Runnable {
      */
     public void sendFile(String fileName) {
         try {
-            //Read in file
-            File myFile = new File(fileName);  
-            byte[] mybytearray = new byte[(int) myFile.length()];
+            //Read in file from file location
+            File sendFile = new File(currentDirectory + "\\files\\" + fileName);  
 
-            FileInputStream fileInputStream = new FileInputStream(myFile);
+            //if file does not exist, returns back to the loop
+            if(!sendFile.exists()) {
+		System.out.println(FileNotFound);
+		return;
+            }
+       
+            byte[] bytes = new byte[(int) sendFile.length()];
+
+            FileInputStream fileInputStream = new FileInputStream(sendFile);
             BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
 
             DataInputStream dataInput = new DataInputStream(buffer);
-            dataInput.readFully(mybytearray, 0, mybytearray.length);
+            dataInput.readFully(bytes, 0, bytes.length);
 
             //handle file send over socket
             OutputStream output = clientSocket.getOutputStream();  
 
             //Sending file name and file size to the server
             DataOutputStream dataOutpt = new DataOutputStream(output); 
-            dataOutpt.writeUTF(myFile.getName());
-            dataOutpt.writeLong(mybytearray.length);
-            dataOutpt.write(mybytearray, 0, mybytearray.length);
+            dataOutpt.writeUTF(sendFile.getName());
+            dataOutpt.writeLong(bytes.length);
+            dataOutpt.write(bytes, 0, bytes.length);
             dataOutpt.flush();
+            
             System.out.println("File: " + fileName + " sent to client.");
             
         } catch (Exception e) {
