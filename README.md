@@ -2,6 +2,14 @@
 
 A client-server file sharing application that makes use of TCP connections from socket programming. 
 
+## Installing
+- Download and open the ClientApp and ServerApp file projects
+
+## Built With
+* [Netbeans](https://netbeans.org/downloads/8.2/) - Dependency management
+
+
+
 ## Client and Server Capabilities
 ### Client:
 * Upload files to the server
