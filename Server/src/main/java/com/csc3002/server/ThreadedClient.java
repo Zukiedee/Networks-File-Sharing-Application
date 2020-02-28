@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -106,21 +107,23 @@ public class ThreadedClient implements Runnable {
      * Send file to client from server.
      * @param fileName Name of file being sent to client.
      */
-    public void sendFile(String fileName) {
+    public void sendFile(String fileName) throws FileNotFoundException, IOException {
         try {
+            File sendFile = new File(currentDirectory + "/files/" + fileName);  
             //Read in file from file location
-            JFileChooser browser = new JFileChooser();
-            int response = browser.showSaveDialog(null);
+            //JFileChooser browser = new JFileChooser();
+            //int response = browser.showSaveDialog(null);
             
-            if (response == JFileChooser.APPROVE_OPTION){
+            //if (response == JFileChooser.APPROVE_OPTION){
                 //Read in file from file location
-                File sendFile = browser.getSelectedFile();
+                //File sendFile = browser.getSelectedFile();
                 
                 //if file does not exist, returns back to the loop
-                if(!sendFile.exists()) {
+               if(!sendFile.exists()) {
                     System.out.println(FileNotFound);
                     return;
                 }
+
        
                 byte[] bytes = new byte[(int) sendFile.length()];
 
@@ -141,10 +144,9 @@ public class ThreadedClient implements Runnable {
                 dataOutpt.flush();
                 
                 System.out.println(fileName + " sent to client.");
-            }
-            else {
-                System.out.println("Send was cancelled");
-            }
+            
+        
+            
         } catch (IOException e) {
             System.err.println(FileNotFound);
         }
