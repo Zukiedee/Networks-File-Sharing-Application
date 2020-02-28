@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 
 public class Server {
    public static void main(String[] args) throws Exception {
@@ -25,6 +26,12 @@ public class Server {
         inputbuffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         
         String num = inputbuffer.readLine();
+        BufferedReader messagebuffered = null;
+		BufferedReader in = null;
+		PrintWriter out = null;
+		messagebuffered = new BufferedReader(new InputStreamReader(System.in));
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	    out = new PrintWriter(socket.getOutputStream(), true);
         if(num.equals("1")){
         
         String outfile = inputbuffer.readLine();
@@ -80,6 +87,14 @@ public class Server {
         socket.close();
         ssock.close();
         System.out.println("File sent succesfully!");
+	}
+	else if(num.equals("3")){
+		String[] pathnames;
+		File f = new File("/home/themba/Pictures/v/");
+		pathnames = f.list();
+		for(String pathname: pathnames){
+			out.println(pathname);
+		}
 	}
    }
 }
