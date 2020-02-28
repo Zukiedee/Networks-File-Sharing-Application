@@ -27,6 +27,7 @@ public class Client {
         System.out.println("Choose option below:");
         System.out.println("1: Upload");
         System.out.println("2: Download");
+        System.out.println("3: Query");
         String opt = messagebuffered.readLine();
         
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -71,7 +72,8 @@ public class Client {
 			//ssock.close();
 			System.out.println("File sent succesfully!");
 			}
-			else{
+			else if(opt.equals("2")){
+				out.println(opt);
 				System.out.println("Enter filename:");
 				String user = messagebuffered.readLine();
 				out.println(user);
@@ -91,5 +93,12 @@ public class Client {
 				socket.close(); 
 				System.out.println("File saved successfully!");
 				}
+			else if(opt.equals("3")){
+				out.println(opt);
+				String line;
+				while((line = in.readLine()) != null){
+					System.out.println(line);
+				}
+			}
 			}
 		}
