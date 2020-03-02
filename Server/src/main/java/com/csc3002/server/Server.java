@@ -6,8 +6,8 @@ import java.net.Socket;
 import java.util.Scanner;
 
 /**
- * Server class. 
- * @author Zukiswa PC
+ * Server class.   
+ * @authors Zukiswa Lobola, Mbaliyethemba Shangase and Simnikiwe Khonto.
  */
 public class Server {
     private static ServerSocket serverSocket;

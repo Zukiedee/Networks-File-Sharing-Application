@@ -11,63 +11,77 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.Socket;
-import javax.swing.JFileChooser;
+import java.util.Arrays;
 
 /**
  * Handles multi-threading of server system.
  * Handles each individual client response
- * @author Zukiswa PC
+ * @authors Zukiswa Lobola, Mbaliyethemba Shangase and Simnikiwe Khonto.
  */
 public class ThreadedClient implements Runnable {
 
     private final Socket clientSocket;
-    private BufferedReader in = null;
+    private BufferedReader in;
     private static String currentDirectory;
-    private static final String FileNotFound = "404 Not Found";
+    private static final String fileNotFound = "404 Not Found";
+    private final DataInputStream clientData;
+    private PrintStream output;
 
     /**
-     * Constructor method. Initializes client socket.
+     * Constructor method.Initializes client socket.
      * @param client Client Socket
+     * @throws java.io.IOException
      */
-    public ThreadedClient(Socket client) {
+    public ThreadedClient(Socket client) throws IOException {
         this.clientSocket = client;
+        in = null;
         currentDirectory = System.getProperty("user.dir");
+        clientData = new DataInputStream(clientSocket.getInputStream());
+        output = new PrintStream(clientSocket.getOutputStream());
     }
 
     @Override
     public void run() {
         try {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            
             while (true) {
-                switch (in.readLine()) {
-                    //client uploaded a file
-                    case "1":
-                        receiveFile();
-                        continue;
-                    
-                    //query list of files from server
-                    case "2":
-                        
-                        continue;
-                    //send file to client
-                    case "3":
-                        String outGoingFileName;
-                        while ((outGoingFileName = in.readLine()) != null) {
-                            sendFile(outGoingFileName);
-                        }
-                        continue;
-                    //Exit
-                    case "4":
-                        in.close();
-                        clientSocket.close();
-                        break;
-                    default:
-                        System.err.println("Invalid command received.");
-                     }
-                
+              
+                    switch (in.readLine()) {
+                        //client uploaded a file
+                        case "1":
+                            receiveFile();
+                            continue;
+
+                        //query list of files from server
+                        case "2":
+                            String[] list;
+                            File file = new File(currentDirectory);
+                            list = file.list();
+                            
+                            output.println(Arrays.toString(list));
+                            
+                            continue;
+                        //send file to client
+                        case "3":
+                            String outGoingFileName = in.readLine();
+                            if(outGoingFileName != null) {
+                                sendFile(outGoingFileName);
+                            }
+                            continue;
+                        //Exit
+                        case "4":
+                            System.out.println(clientSocket + " logged off.");
+                            in.close();
+                            clientData.close();
+                            clientSocket.close();
+                            break;
+                        default:
+                            System.err.println("Invalid command received.");
+                }  
             }
+            
         } catch (IOException ex) {
             //System.err.println("Exception: " + ex);
         }
@@ -80,8 +94,9 @@ public class ThreadedClient implements Runnable {
     public void receiveFile() throws IOException {
         String fileName = "";
         int bytesRead;
-        try ( DataInputStream clientData = new DataInputStream(clientSocket.getInputStream())) {
+        try {
             fileName = clientData.readUTF();
+            //saves file to server directory
             try (FileOutputStream fileOutput = new FileOutputStream(currentDirectory +"/" +fileName)) {
                 long size = clientData.readLong();
                 byte[] buffer = new byte[1024];
@@ -89,16 +104,14 @@ public class ThreadedClient implements Runnable {
                     fileOutput.write(buffer, 0, bytesRead);
                     size -= bytesRead;
                 }   //Close file input and output stream
-                fileOutput.close();
-                clientData.close();
-                
+                fileOutput.close();         
             }
             catch (Exception e){
-                System.err.println("Exce:" + e);
+                System.err.println("Error:" + e);
             }
         }
-        catch (Exception e){
-            System.err.println(e);
+        catch (IOException e){
+            System.err.println("Error: " + e);
         }
         System.out.println(fileName + " received from client.");
     }
@@ -106,49 +119,41 @@ public class ThreadedClient implements Runnable {
     /**
      * Send file to client from server.
      * @param fileName Name of file being sent to client.
+     * @throws java.io.FileNotFoundException
      */
     public void sendFile(String fileName) throws FileNotFoundException, IOException {
         try {
             File sendFile = new File(currentDirectory + "/files/" + fileName);  
-            //Read in file from file location
-            //JFileChooser browser = new JFileChooser();
-            //int response = browser.showSaveDialog(null);
-            
-            //if (response == JFileChooser.APPROVE_OPTION){
-                //Read in file from file location
-                //File sendFile = browser.getSelectedFile();
+           
+            if(!sendFile.exists()) {
+                output.println(fileNotFound);
+                return;
+            }
+            else {
+                output.println("File OK");
+            }
+            byte[] bytes = new byte[(int) sendFile.length()];
+
+            FileInputStream fileInputStream = new FileInputStream(sendFile);
+            BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
+
+            DataInputStream dataInput = new DataInputStream(buffer);
+            dataInput.readFully(bytes, 0, bytes.length);
+
+            //handle file send over socket
+            OutputStream outputStream = clientSocket.getOutputStream();  
+
+            //Sending file name and file size to the server
+            DataOutputStream dataOutpt = new DataOutputStream(outputStream); 
+            dataOutpt.writeUTF(sendFile.getName());
+            dataOutpt.writeLong(bytes.length);
+            dataOutpt.write(bytes, 0, bytes.length);
+            dataOutpt.flush();
                 
-                //if file does not exist, returns back to the loop
-               if(!sendFile.exists()) {
-                    System.out.println(FileNotFound);
-                    return;
-                }
-
-       
-                byte[] bytes = new byte[(int) sendFile.length()];
-
-                FileInputStream fileInputStream = new FileInputStream(sendFile);
-                BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
-
-                DataInputStream dataInput = new DataInputStream(buffer);
-                dataInput.readFully(bytes, 0, bytes.length);
-
-                //handle file send over socket
-                OutputStream output = clientSocket.getOutputStream();  
-
-                //Sending file name and file size to the server
-                DataOutputStream dataOutpt = new DataOutputStream(output); 
-                dataOutpt.writeUTF(sendFile.getName());
-                dataOutpt.writeLong(bytes.length);
-                dataOutpt.write(bytes, 0, bytes.length);
-                dataOutpt.flush();
-                
-                System.out.println(fileName + " sent to client.");
-            
-        
+            System.out.println(fileName + " sent to " + clientSocket + ".");
             
         } catch (IOException e) {
-            System.err.println(FileNotFound);
+            System.err.println(fileNotFound);
         }
     }
 }
