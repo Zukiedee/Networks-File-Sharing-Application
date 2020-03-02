@@ -123,7 +123,7 @@ public class ThreadedClient implements Runnable {
      */
     public void sendFile(String fileName) throws FileNotFoundException, IOException {
         try {
-            File sendFile = new File(currentDirectory + "/files/" + fileName);  
+            File sendFile = new File(currentDirectory + "/" + fileName);  
            
             if(!sendFile.exists()) {
                 output.println(fileNotFound);
