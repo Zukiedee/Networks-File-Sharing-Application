@@ -22,22 +22,23 @@ A client-server file sharing application that makes use of TCP connections from 
 * Dowload a file from server
 
 #### Unix Commands:
+
+make: compiles java files in src directory into bin directory
 ```
 make
 ```
-make: compiles java files in src directory into bin directory
+make run: runs the server or client class
 ```
 make run
 ```
-make run: runs the server or client class
+make clean: deletes the class files in the bin directory
 ```
 make clean
 ```
-make clean: deletes the class files in the bin directory
+make docs: creates the java docs in doc directory 
 ```
 make docs
 ```
-make docs: creates the java docs in doc directory 
 
 #### Steps to run the server:
 - Step 1: navigate to the server direcory in the terminal
