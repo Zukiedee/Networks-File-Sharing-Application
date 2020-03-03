@@ -40,7 +40,7 @@ make docs: creates the java docs in doc directory
 make docs
 ```
 
-#### Steps to run the server:
+### Steps to run the server:
 - Step 1: navigate to the server direcory in the terminal
 - Step 2: make
 - Step 3: make run
@@ -51,7 +51,7 @@ Example: Output:  Enter Port number:
          Output:  Server is running..
 ```
 
-#### Steps to run the client:
+### Steps to run the client:
 - Step 1: navigate to the client direcory in the terminal
 - Step 2: make
 - Step 3: make run
