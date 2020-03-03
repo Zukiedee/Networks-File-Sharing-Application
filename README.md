@@ -21,7 +21,7 @@ A client-server file sharing application that makes use of TCP connections from 
 * Query server for list of available files
 * Dowload a file from server
 
-#### Unix Terminal Commands:
+## Unix Terminal Commands:
 
 make: compiles java files in src directory into bin directory
 ```
