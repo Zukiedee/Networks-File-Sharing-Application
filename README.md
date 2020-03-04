@@ -62,6 +62,4 @@ Example:  Output: Successfully connected to server!
 ```
 
 ## Application features:
-* Considers privacy/confidentiality through use of file sharing permissions?
-* File visibility/downloadabilty to certain clients?
-* Shared secret-key to be used to download files?
+* Considers privacy/confidentiality through use of file sharing permissions
