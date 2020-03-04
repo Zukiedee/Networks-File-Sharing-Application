@@ -57,15 +57,8 @@ Example: Output:  Enter Port number:
 - Step 3: make run
 - Step 4: Client GUI should be active 
 ```
-Example:  Output: Connected to server!
-                  Commands: 
-                  1. Upload
-                  2. Query list of files
-                  3. Download
-                  4. Exit
-          
-          Input: 1
-          ...
+Example:  Output: Successfully connected to server!
+                  ....
 ```
 
 ## Application features:
