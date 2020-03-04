@@ -1,4 +1,4 @@
-package server; 
+package server;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -8,19 +8,23 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Arrays;
 
 /**
  * Handles multi-threading of server system.
- * Handles each individual client response
+ * Handles each individual client response.
+ * Server is able to receive and send files to the client.
  * @authors Zukiswa Lobola, Mbaliyethemba Shangase and Simnikiwe Khonto.
  */
-public class ThreadedClient implements Runnable {
+public final class ThreadedClient implements Runnable {
 
     private final Socket clientSocket;
     private BufferedReader in;
@@ -29,6 +33,10 @@ public class ThreadedClient implements Runnable {
     private final DataInputStream clientData;
     private final PrintStream output;
     private final String fileDirectorySplit;
+    private boolean protect = false;
+    private String pass;
+    private boolean protectedFile;
+    private String fileName;
 
     /**
      * Constructor method.Initializes client socket.
@@ -41,9 +49,12 @@ public class ThreadedClient implements Runnable {
         currentDirectory = System.getProperty("user.dir");
         clientData = new DataInputStream(clientSocket.getInputStream());
         output = new PrintStream(clientSocket.getOutputStream());
+        
         String os = System.getProperty("os.name");
         if (os.startsWith("Win")) fileDirectorySplit = "\\";
         else fileDirectorySplit = "/";
+        
+        output.println(newClient());
     }
 
     @Override
@@ -51,57 +62,107 @@ public class ThreadedClient implements Runnable {
         try {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             while (true) {
-              
-                    switch (in.readLine()) {
-                        //client uploaded a file
-                        case "1":
-                            receiveFile();
-                            continue;
+                String line = in.readLine();
+                switch (line) {
+                    //client uploaded a file
+                    case "1":
+                        receiveFile(null);
+                        continue;
 
-                        //query list of files from server
-                        case "2":
-                            String[] list;
-                            File file = new File(currentDirectory);
-                            list = file.list();
-                            System.out.println(currentDirectory);
-                            output.println(Arrays.toString(list).substring(1, Arrays.toString(list).length()-1));
-                            
-                            continue;
-                        //send file to client
-                        case "3":
-                            String outGoingFileName = in.readLine();
-                            if(outGoingFileName != null) {
-                                sendFile(outGoingFileName);
+                    //query list of files from server
+                    case "2":
+                        String[] array;
+                        File file = new File(currentDirectory + fileDirectorySplit + "files");
+                        array = file.list();
+                        String list = Arrays.toString(array).substring(1, Arrays.toString(array).length()-1);
+                        output.println(list);   
+                        continue;
+                        
+                    //send file to client
+                    case "3":
+                        String outGoingFileName = in.readLine();
+                        if(outGoingFileName != null) {
+                            sendFile(outGoingFileName);
+                        }
+                        continue;
+                        
+                    //client exited
+                    case "4":
+                        System.out.println(clientSocket + " logged off.");
+                        in.close();
+                        clientData.close();
+                        clientSocket.close();
+                        break;
+                            //no password
+                                       
+                    default:
+                        if (line.startsWith("1 yes")){ //- upload file with password
+                            int last = line.indexOf(";");
+                            String pword = line.substring(last+1);
+                            receiveFile(pword);
+                        }
+                        
+                        else if(line.startsWith("request permission")){
+                            int start = line.indexOf(";");
+                            fileName = line.substring(start+1).trim();
+                            if (filePermissions(fileName)){
+                                output.println("yes password");
                             }
-                            continue;
-                        //Exit
-                        case "4":
-                            System.out.println(clientSocket + " logged off.");
-                            in.close();
-                            clientData.close();
-                            clientSocket.close();
-                            break;
-                        default:
-                            System.err.println("Invalid command received.");
+                            else { output.println("no password");
+                                sendFile(fileName);
+                            }
+                            
+                        }
+                        else if(line.startsWith("password verification")){
+                            int start = line.indexOf(";");  
+                            String key = line.substring(start+1).trim();
+                            if(key.trim().equals(pass)){
+                                int end = key.indexOf(";");
+                                sendFile(key.substring(0, end).trim());
+                            }
+                        }   
                 }  
             }
             
-        } catch (IOException ex) {
-            //System.err.println("Exception: " + ex);
-        }
+        } catch (IOException ex) {}
+    }
+    
+    /**
+     * Outputs command options for client to choose from.
+     * @return 
+     * @throws IOException 
+     */
+    private String newClient() throws IOException {
+        return "Successfully connected to server.";
     }
 
     /**
      * File sent by client to server.These files are saved in the Server directory
      * @throws java.io.IOException
      */
-    public void receiveFile() throws IOException {
+    private void receiveFile(String password) throws IOException {       
         String fileName = "";
         int bytesRead;
         try {
             fileName = clientData.readUTF();
             //saves file to server directory
-            try (FileOutputStream fileOutput = new FileOutputStream(currentDirectory + fileDirectorySplit +fileName)) {
+            if (password != null){
+                
+                //String dir = currentDirectory + fileDirectorySplit+ "protect.txt";
+                //File protectedFiles = new File(dir)
+                
+                try{ 
+                    FileWriter w = new FileWriter("protect.txt");
+                    PrintWriter pw = new PrintWriter(w);
+                    pw.println("\n" + fileName + ";"+ password);
+                    pw.close();
+                }
+                catch (Exception e){
+                    System.err.println("Could not write to password file");
+                }
+               
+            }
+            try (FileOutputStream fileOutput = new FileOutputStream(currentDirectory + fileDirectorySplit + "files" + fileDirectorySplit +fileName)) {
                 long size = clientData.readLong();
                 byte[] buffer = new byte[1024];
                 while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
@@ -119,15 +180,31 @@ public class ThreadedClient implements Runnable {
         }
         System.out.println(fileName + " received from " + clientSocket);
     }
+    
+    private boolean filePermissions(String fileName) throws FileNotFoundException, IOException{
+        FileReader fr = new FileReader("protect.txt");
+        BufferedReader br = new BufferedReader(fr);
+        protectedFile = false;
+        String str;
+        while ((str = br.readLine())!=null){
+            //search for file name
+            if (str.startsWith(fileName)){
+                protectedFile = true;
+                pass = str;
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Send file to client from server.
      * @param fileName Name of file being sent to client.
      * @throws java.io.FileNotFoundException
      */
-    public void sendFile(String fileName) throws FileNotFoundException, IOException {
+    private void sendFile(String fileName) throws FileNotFoundException, IOException {        
         try {
-            File sendFile = new File(currentDirectory + fileDirectorySplit + fileName);  
+            File sendFile = new File(currentDirectory + fileDirectorySplit + "files" + fileDirectorySplit + fileName);  
            
             if(!sendFile.exists()) {
                 output.println(fileNotFound);
@@ -157,7 +234,7 @@ public class ThreadedClient implements Runnable {
             System.out.println(fileName + " sent to " + clientSocket + ".");
             
         } catch (IOException e) {
-            System.err.println(fileNotFound);
+            output.println(fileNotFound);
         }
     }
 }
