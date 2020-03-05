@@ -21,25 +21,7 @@ A client-server file sharing application that makes use of TCP connections from 
 * Query server for list of available files
 * Dowload a file from server
 
-## Unix Terminal Commands:
-
-make: compiles java files in src directory into bin directory
-```
-make
-```
-make run: runs the server or client class
-```
-make run
-```
-make clean: deletes the class files in the bin directory
-```
-make clean
-```
-make docs: creates the java docs in doc directory 
-```
-make docs
-```
-
+## Compilation and Running the Application
 ### Steps to run the server:
 - Step 1: navigate to the server direcory in the terminal
 - Step 2: make
@@ -69,6 +51,27 @@ Enter IP Address and Port number and then when the client is connected to the se
 Output: Successfully connected to server!
                   ....
 ```
+
+## Unix Terminal Commands:
+
+make: compiles java files in src directory into bin directory
+```
+make
+```
+make run: runs the server or client class
+```
+make run
+```
+make clean: deletes the class files in the bin directory
+```
+make clean
+```
+make docs: creates the java docs in doc directory 
+```
+make docs
+```
+
+
 
 ## Application features:
 * Considers privacy/confidentiality through use of file sharing permissions
