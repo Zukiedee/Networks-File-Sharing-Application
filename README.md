@@ -44,6 +44,10 @@ make docs
 - Step 1: navigate to the server direcory in the terminal
 - Step 2: make
 - Step 3: make run
+```
+Example: make
+         make run
+```
 - Step 4: Enter port number
 ```
 Example: Output:  Enter Port number: 
@@ -57,7 +61,12 @@ Example: Output:  Enter Port number:
 - Step 3: make run
 - Step 4: Client GUI should be active 
 ```
-Example:  Output: Successfully connected to server!
+Example: make
+         make run
+```
+Enter IP Address and Port number and then when the client is connected to the server, the following output will appear:
+```
+Output: Successfully connected to server!
                   ....
 ```
 
