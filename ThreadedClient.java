@@ -158,20 +158,18 @@ public class ThreadedClient implements Runnable {
      * @throws java.io.FileNotFoundException
      */
     public void sendFile(String fileName) throws FileNotFoundException, IOException {
-        try {
+        //try {
             //frame = new JFrame();
             //Object result = JOptionPane.showInputDialog(frame, "Enter printer name:");
     
-            if(String.valueOf(result).equals(" ")){
+            //if(String.valueOf(result).equals(" ")){
                 File sendFile = new File(currentDirectory + fileDirectorySplit + fileName);  
            
                 if(!sendFile.exists()) {
                     output.println(fileNotFound);
                     return;
                 }
-                else {
-                    output.println("File OK");
-                }
+                
                 byte[] bytes = new byte[(int) sendFile.length()];
 
                 FileInputStream fileInputStream = new FileInputStream(sendFile);
@@ -192,8 +190,8 @@ public class ThreadedClient implements Runnable {
                 
                 System.out.println(fileName + " sent to " + clientSocket + ".");}
             
-        } catch (IOException e) {
-            System.err.println(fileNotFound);
-        }
-    }
+        //} catch (IOException e) {
+            //System.err.println(fileNotFound);
+        //}
+    //}
 }

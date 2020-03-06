@@ -338,21 +338,10 @@ public class Client extends javax.swing.JFrame {
                     break;
                 //download
                 case "3":
-                	panel = new JPanel(new GridLayout(0,2));
-        			frame = new JFrame();
-        			//panel.setLayout(new GridLayout(0,1));
-        
-        			owner = new JTextField(20);
-        
-        			panel.add(new JLabel("Click NO for public or enter name for private files:"));
-        			panel.add(owner);
-        
-        			int option = JOptionPane.showConfirmDialog(frame, panel, "Query server", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-        			if(option == JOptionPane.NO_OPTION){
-                    	downloading = true;
-                    	outputTextArea.append("Enter file name: ");
-                    	break;
-                    }
+                    downloading = true;
+                    outputTextArea.append("Enter file name: ");
+                    break;
+                    
                 //Exit
                 case "4":
                     //in.close();
