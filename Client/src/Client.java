@@ -1,5 +1,7 @@
 package client;
 
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedInputStream;
@@ -15,14 +17,17 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
 
 /**
- * Client Class
+ * Client Class. Connects to the server using socket programming. 
+ * Client is able to upload, download and query the server's list of files.
+ * Additional feature: password-protected file upload.
  * @authors Zukiswa Lobola, Mbaliyethemba Shangase and Simnikiwe Khonto.
  */
 public class Client extends javax.swing.JFrame {
@@ -30,12 +35,13 @@ public class Client extends javax.swing.JFrame {
     private String fileName;
     private PrintStream output;
     private final String fileNotFound = "404 Not Found";
-    private final JFileChooser browser;
     private BufferedReader serverInput;
     private boolean connected = false;
-    private boolean downloading = false;
     private DataInputStream clientData;
     private final String fileDirectorySplit;
+    private final DefaultListModel<String> listModel;
+    private String downloadfileName;
+    private String password;
     
     /**
      * Creates new form Client
@@ -46,13 +52,17 @@ public class Client extends javax.swing.JFrame {
         setTitle("Client"); 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         
+        socket = null;
         output = null;
         serverInput = null;
-        browser = new JFileChooser();
-        inputCommand.setFocusable(false);
+        
         outputTextArea.setFocusable(false);
         outputTextArea.setEditable(false);
-        sendButton.setEnabled(false);
+        queryButton.setEnabled(false);
+        uploadButton.setEnabled(false);
+        downloadButton.setEnabled(false);
+        listModel = new DefaultListModel<>();
+        
         String os = System.getProperty("os.name");
         if (os.startsWith("Win")) fileDirectorySplit = "\\";
         else fileDirectorySplit = "/";
@@ -61,13 +71,14 @@ public class Client extends javax.swing.JFrame {
          * Handles default exit operation
          */
         addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent ev) {
-                
+            @Override
+            public void windowClosing(WindowEvent ev) {    
                 int exit = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit", JOptionPane.YES_NO_OPTION);
                 if (exit == 0){
                     try {
                         if (connected){
                             output.println("4");
+                            output.close();
                             serverInput.close();
                             clientData.close();
                             socket.close();
@@ -75,10 +86,27 @@ public class Client extends javax.swing.JFrame {
                     } catch (IOException ex) {
                         JOptionPane.showMessageDialog(null, "Something went wrong.", "Error", JOptionPane.ERROR_MESSAGE);
                         dispose();
+                        System.exit(0);
                     }
                     dispose();
-                }
-                
+                    System.exit(0);
+                }      
+            }
+        });
+        
+        list.getSelectionModel().addListSelectionListener(e ->{
+            try {    
+                downloadfileName = list.getSelectedValue().toString();  
+                downloadButton.setEnabled(true);
+            } catch (Exception ex) {  }
+        
+        });
+        
+        list.addFocusListener(new FocusAdapter(){
+            @Override
+            public void focusLost(FocusEvent e){
+                list = (JList) e.getComponent();
+                list.clearSelection();
             }
         });
     }
@@ -99,15 +127,16 @@ public class Client extends javax.swing.JFrame {
         portLabel = new javax.swing.JLabel();
         portInput = new javax.swing.JTextField();
         connectButton = new javax.swing.JButton();
+        cmdPanel = new javax.swing.JPanel();
         serverPanel = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         outputTextArea = new javax.swing.JTextArea();
         serverLabel = new javax.swing.JLabel();
-        cmdPanel = new javax.swing.JPanel();
-        inputLabel = new javax.swing.JLabel();
-        inputCommand = new javax.swing.JTextField();
-        commandLabel = new javax.swing.JLabel();
-        sendButton = new javax.swing.JButton();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        list = new javax.swing.JList();
+        queryButton = new javax.swing.JButton();
+        uploadButton = new javax.swing.JButton();
+        downloadButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -116,11 +145,14 @@ public class Client extends javax.swing.JFrame {
 
         socketPanel.setBackground(new java.awt.Color(255, 204, 204));
 
+        ipLabel.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         ipLabel.setText("IP Address:");
 
+        portLabel.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         portLabel.setText("Port:");
 
         connectButton.setBackground(new java.awt.Color(204, 0, 102));
+        connectButton.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         connectButton.setForeground(new java.awt.Color(255, 255, 255));
         connectButton.setText("Connect");
         connectButton.addActionListener(new java.awt.event.ActionListener() {
@@ -137,14 +169,14 @@ public class Client extends javax.swing.JFrame {
                 .addGap(10, 10, 10)
                 .addComponent(ipLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(ipInput, javax.swing.GroupLayout.DEFAULT_SIZE, 117, Short.MAX_VALUE)
+                .addComponent(ipInput, javax.swing.GroupLayout.PREFERRED_SIZE, 156, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(portLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(portInput, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(20, 20, 20)
+                .addGap(26, 26, 26)
                 .addComponent(connectButton, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addContainerGap(30, Short.MAX_VALUE))
         );
         socketPanelLayout.setVerticalGroup(
             socketPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -159,77 +191,98 @@ public class Client extends javax.swing.JFrame {
                 .addGap(10, 10, 10))
         );
 
+        cmdPanel.setBackground(new java.awt.Color(255, 153, 153));
+
         serverPanel.setBackground(new java.awt.Color(255, 153, 153));
 
         outputTextArea.setColumns(20);
         outputTextArea.setRows(5);
         jScrollPane1.setViewportView(outputTextArea);
 
-        serverLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        serverLabel.setFont(new java.awt.Font("Arial Black", 0, 14)); // NOI18N
         serverLabel.setText("Server Responses:");
+
+        list.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        list.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        list.setSelectionBackground(new java.awt.Color(102, 204, 255));
+        jScrollPane2.setViewportView(list);
+
+        queryButton.setBackground(new java.awt.Color(153, 0, 51));
+        queryButton.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        queryButton.setForeground(new java.awt.Color(255, 255, 255));
+        queryButton.setText("Get list of server's files");
+        queryButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                queryButtonActionPerformed(evt);
+            }
+        });
+
+        uploadButton.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        uploadButton.setText("Upload File");
+        uploadButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                uploadButtonActionPerformed(evt);
+            }
+        });
+
+        downloadButton.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        downloadButton.setText("Download File");
+        downloadButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                downloadButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout serverPanelLayout = new javax.swing.GroupLayout(serverPanel);
         serverPanel.setLayout(serverPanelLayout);
         serverPanelLayout.setHorizontalGroup(
             serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 529, Short.MAX_VALUE)
             .addGroup(serverPanelLayout.createSequentialGroup()
-                .addComponent(serverLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 161, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                .addGroup(serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 425, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(serverLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 248, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                    .addComponent(queryButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(serverPanelLayout.createSequentialGroup()
+                        .addComponent(uploadButton, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(downloadButton, javax.swing.GroupLayout.DEFAULT_SIZE, 116, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         serverPanelLayout.setVerticalGroup(
             serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, serverPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(serverLabel)
                 .addGap(7, 7, 7)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 310, Short.MAX_VALUE)
-                .addContainerGap())
+                .addGroup(serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(serverLabel)
+                    .addComponent(queryButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(serverPanelLayout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 300, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(serverPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(uploadButton, javax.swing.GroupLayout.DEFAULT_SIZE, 34, Short.MAX_VALUE)
+                            .addComponent(downloadButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(jScrollPane1)))
         );
-
-        cmdPanel.setBackground(new java.awt.Color(255, 153, 153));
-
-        inputLabel.setText("Input:");
-
-        commandLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
-        commandLabel.setText("Commands:");
-
-        sendButton.setText("Send");
-        sendButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                sendButtonActionPerformed(evt);
-            }
-        });
 
         javax.swing.GroupLayout cmdPanelLayout = new javax.swing.GroupLayout(cmdPanel);
         cmdPanel.setLayout(cmdPanelLayout);
         cmdPanelLayout.setHorizontalGroup(
             cmdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(cmdPanelLayout.createSequentialGroup()
-                .addGap(5, 5, 5)
-                .addGroup(cmdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(cmdPanelLayout.createSequentialGroup()
-                        .addComponent(commandLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 165, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addGroup(cmdPanelLayout.createSequentialGroup()
-                        .addComponent(inputLabel)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(inputCommand, javax.swing.GroupLayout.PREFERRED_SIZE, 338, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(sendButton, javax.swing.GroupLayout.DEFAULT_SIZE, 136, Short.MAX_VALUE))))
+                .addComponent(serverPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
         cmdPanelLayout.setVerticalGroup(
             cmdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(cmdPanelLayout.createSequentialGroup()
-                .addComponent(commandLabel)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(cmdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, cmdPanelLayout.createSequentialGroup()
-                        .addComponent(inputCommand, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(inputLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(sendButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(10, 10, 10))
+                .addContainerGap()
+                .addComponent(serverPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -237,30 +290,32 @@ public class Client extends javax.swing.JFrame {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(20, 20, 20)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(serverPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(cmdPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(socketPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(23, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(20, 20, 20)
+                        .addComponent(cmdPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(104, 104, 104)
+                        .addComponent(socketPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(30, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(21, 21, 21)
+                .addGap(31, 31, 31)
                 .addComponent(socketPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(28, 28, 28)
+                .addGap(18, 18, 18)
                 .addComponent(cmdPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(serverPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                .addContainerGap(20, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -275,8 +330,6 @@ public class Client extends javax.swing.JFrame {
      * @param evt 
      */
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        Client c;
-        socket = null;
         String IP = ipInput.getText().trim();
         int port;
         
@@ -285,24 +338,26 @@ public class Client extends javax.swing.JFrame {
             socket = new Socket(IP, port);
             output = new PrintStream(socket.getOutputStream());
             serverInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            outputTextArea.append("Successfully connected to Server!\n");
-            userCommands();  
+            clientData = new DataInputStream(socket.getInputStream());
+            
+            //print server welcome message
+            outputTextArea.append(serverInput.readLine() + "\n");
+            
             ipInput.setFocusable(false);
             portInput.setFocusable(false);
             connected = true;
             connectButton.setText("Connected");
             connectButton.setEnabled(false);
-            sendButton.setEnabled(true);
-            inputCommand.setFocusable(true);
+            queryButton.setEnabled(true);
+            uploadButton.setEnabled(true);
             outputTextArea.setFocusable(true);
             socketPanel.setBackground(new java.awt.Color(255, 153, 153));
             cmdPanel.setBackground(new java.awt.Color(255, 204, 204));
-            clientData = new DataInputStream(socket.getInputStream());
 
         } catch (NumberFormatException | IOException ex ) {
             JOptionPane.showMessageDialog(this, "Error: " + ex, "Error Message", JOptionPane.ERROR_MESSAGE);
             try {
-                c = new Client();
+                Client c = new Client();
             } catch (IOException ex1) {
                 JOptionPane.showMessageDialog(this, "Error: " + ex1, "Error Message", JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
@@ -310,64 +365,60 @@ public class Client extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_connectButtonActionPerformed
 
-    /**
-     * Send input command request to server
-     * @param evt 
-     */
-    private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
+    private void downloadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_downloadButtonActionPerformed
+        output.println("3");
+        output.println(downloadfileName);
+        String response;
         try {
-            String msg = inputCommand.getText().trim();
-            outputTextArea.append(msg + "\n");
-            output.println(msg);   
-            switch (msg){
-                //upload
-                case "1":
-                    upload();
-                    break;
-                //query
-                case "2":
-                    String files = serverInput.readLine();
-                    String list[] = files.split(",");
-                    for (String file: list){
-                        outputTextArea.append(file.trim()+"\n");
-                    }
-                    break;
-                //download
-                case "3":
-                    downloading = true;
-                    outputTextArea.append("Enter file name: ");
-                    break;
-                //Exit
-                case "4":
-                    //in.close();
-                    output.close();
-                    socket.close();
-                    dispose();
-                    System.exit(0);
-                default:
-                    if(downloading){
-                        //input file name of download file
-                        String file = inputCommand.getText().trim();
-                        
-                        //check that file is available with server
-                        if (!serverInput.readLine().equals(fileNotFound)){
-                            //download file
-                            download(file);
-                            break;
-                        }
-                        else {
-                            outputTextArea.append(fileNotFound);
-                            break;
-                        }
-                    }
-                    break;           
+            response = serverInput.readLine();
+           
+            if (!response.equals(fileNotFound)){
+                download(downloadfileName);
+                list.clearSelection();
+                downloadButton.setEnabled(false);
             }
-            inputCommand.setText("");
-            
-        } catch (NumberFormatException | IOException e){
-            JOptionPane.showMessageDialog(this, "Error: " + e, "Error Message", JOptionPane.ERROR_MESSAGE);
+            else {
+                list.clearSelection();
+                outputTextArea.append(response);
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, ex, "Error Message", JOptionPane.ERROR_MESSAGE);
+        }     
+    }//GEN-LAST:event_downloadButtonActionPerformed
+
+    private void uploadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uploadButtonActionPerformed
+        //String pass = protectedPermission();
+        //if (pass == null) {
+            output.println("1");
+            upload();
+        //}
+        /*else {
+            output.println("1 yes;"+ pass);
+            upload();
+        }*/
+    }//GEN-LAST:event_uploadButtonActionPerformed
+
+    private void queryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_queryActionPerformed
+        
+    }//GEN-LAST:event_queryActionPerformed
+
+    private void queryButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_queryButtonActionPerformed
+        output.println("2");
+        String files;
+        if (!listModel.isEmpty()){
+            listModel.clear();
         }
-    }//GEN-LAST:event_sendButtonActionPerformed
+        try {
+            files = serverInput.readLine();
+            String serverlist[] = files.split(",");
+            for (String file: serverlist){
+                listModel.addElement(file.trim());
+            }
+            list.setModel(listModel);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Could not get list of files from server", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_queryButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -399,17 +450,7 @@ public class Client extends javax.swing.JFrame {
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(null, "Error: " + ex, "Error Message", JOptionPane.ERROR_MESSAGE);
             }
-        }); 
-        
-    }
-    
-    /**
-     * Outputs command options for user to choose from.
-     * @throws IOException 
-     */
-    public void userCommands() throws IOException {
-        
-        outputTextArea.append("\nCommands: \n1. Upload file.\n2. Query list of files\n3. Download file.\n4. Exit.\n");
+        });         
     }
     
     /**
@@ -418,6 +459,7 @@ public class Client extends javax.swing.JFrame {
     public void upload() {
         try {           
             //Get file using JChooser
+            JFileChooser browser = new JFileChooser();
             int response = browser.showOpenDialog(null);
             
             if (response == JFileChooser.APPROVE_OPTION){
@@ -448,7 +490,7 @@ public class Client extends javax.swing.JFrame {
                 dataOutput.writeLong(bytes.length);
                 dataOutput.write(bytes, 0, bytes.length);
                 dataOutput.flush();
-                outputTextArea.append(fileName + " successfully uploaded to server.\n");  
+                outputTextArea.append("\n" + fileName + " successfully uploaded to server.\n");  
                 
             } else {
                 outputTextArea.append("\nUpload was cancelled\n");
@@ -467,15 +509,17 @@ public class Client extends javax.swing.JFrame {
     public void download(String fileName) throws FileNotFoundException, IOException {
         int bytesRead;
  
-        browser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        browser.setFileFilter(new FolderFilter());
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setFileFilter(new FolderFilter());
         
-        int response = browser.showSaveDialog(null);
+        int response = chooser.showSaveDialog(null);
         
         if (response == JFileChooser.APPROVE_OPTION){
-            String dir = browser.getCurrentDirectory().toString();
+            //String dir = chooser.getCurrentDirectory().toString();
             fileName = clientData.readUTF();
-            try (FileOutputStream fileOutput = new FileOutputStream(dir + fileDirectorySplit +fileName)) {
+            File folder = chooser.getSelectedFile();
+            try (FileOutputStream fileOutput = new FileOutputStream(folder+ fileDirectorySplit +fileName)) {
                 long size = clientData.readLong();
                 byte[] buffer = new byte[1024];
                 while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
@@ -491,28 +535,40 @@ public class Client extends javax.swing.JFrame {
         }        
         else {
             outputTextArea.append("\nDownload cancelled");
-            return;
         }
-        downloading = false;
+        downloadButton.setEnabled(false);
+    }
+    
+    private String protectedPermission(){
+        int protect = JOptionPane.showConfirmDialog(null, "Do you want to password-protect this file?", "Password Protection", JOptionPane.YES_NO_OPTION);
+        int yes = JOptionPane.YES_OPTION;
+        
+        if (protect == yes){
+            JPasswordField jpf = new JPasswordField(20);
+            JOptionPane.showConfirmDialog(null, jpf, "Enter File Password", JOptionPane.OK_OPTION);
+            return jpf.getText();
+        }
+        return null;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel cmdPanel;
-    private javax.swing.JLabel commandLabel;
     private javax.swing.JButton connectButton;
-    private javax.swing.JTextField inputCommand;
-    private javax.swing.JLabel inputLabel;
+    private javax.swing.JButton downloadButton;
     private javax.swing.JTextField ipInput;
     private javax.swing.JLabel ipLabel;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JList list;
     private javax.swing.JTextArea outputTextArea;
     private javax.swing.JTextField portInput;
     private javax.swing.JLabel portLabel;
-    private javax.swing.JButton sendButton;
+    private javax.swing.JButton queryButton;
     private javax.swing.JLabel serverLabel;
     private javax.swing.JPanel serverPanel;
     private javax.swing.JPanel socketPanel;
+    private javax.swing.JButton uploadButton;
     // End of variables declaration//GEN-END:variables
 }
 class FolderFilter extends javax.swing.filechooser.FileFilter {

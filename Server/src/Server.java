@@ -1,4 +1,4 @@
-package server; 
+package server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -6,7 +6,8 @@ import java.net.Socket;
 import java.util.Scanner;
 
 /**
- * Server class.   
+ * Server class. Able to accomodate multiple clients on the file sharing system
+ * using multi-threading.   
  * @authors Zukiswa Lobola, Mbaliyethemba Shangase and Simnikiwe Khonto.
  */
 public class Server {
